@@ -19,10 +19,6 @@ const ADMIN_ID = process.env.ADMIN_ID;
 
 
 
-
-
-
-
 app.use(cors({ methods: ["GET", "POST"] }));
 app.use(express.json());
 
@@ -151,7 +147,7 @@ const writeHelpAdmin = new Scenes.WizardScene(
     if (ctx.update.message.photo) {
       const photo = ctx.update.message.photo.pop();
       ctx.telegram.sendPhoto(id, photo.file_id, {
-        caption: `🔔 <b>Ответ Администратора</b> >
+        caption: `🔔 <b>Ответ Поддержки</b> >
         \n<blockquote>${ctx.update.message.caption ?? "Пусто"}</blockquote>`,
         parse_mode: "HTML",
         reply_markup: {
@@ -163,7 +159,7 @@ const writeHelpAdmin = new Scenes.WizardScene(
     } else {
       ctx.telegram.sendMessage(
         id,
-        `🔔 <b>Ответ Администратора</b> > \n <blockquote>${ctx.message.text}</blockquote>`,
+        `🔔 <b>Ответ Поддержки</b> > \n <blockquote>${ctx.message.text}</blockquote>`,
         {
           parse_mode: "HTML",
           reply_markup: {
@@ -297,9 +293,7 @@ bot.action(/^pay_umoney_/i, async (ctx) => {
   const currenLable = refCode(10);
 
   const link = createQuickpayLink({ receiver: "4100119146265962", sum: amountOrder*1, label: currenLable, targets: `Оплата #${currenLable}` });
-
-
-    orderBase.insertOne( { id, lable: currenLable, amount: amountOrder*1, status: false }).then(res_2 => {
+  orderBase.insertOne( { id, lable: currenLable, amount: amountOrder*1, status: false }).then(() => {
       ctx.reply(`<b>💳 Ссылка на оплату сгенерирована #${currenLable}</b>
 <blockquote><b>⚡️ Обратите внимание: сервис удерживает 3% комиссии, но мы покрываем её за вас! </b> </blockquote>`
             ,{  
@@ -362,7 +356,7 @@ bot.action(/^umoney_lable_/i, async (ctx) => {
 
 
 bot.action(/^pay_crypto_/i, async (ctx) => {
-  const { id, username } = ctx.from;
+  const { id } = ctx.from;
  
   const amountOrder = ctx.match.input.split("_")[2];
   console.log(amountOrder)
@@ -405,35 +399,81 @@ bot.action(/^pay_crypto_/i, async (ctx) => {
 
 
 
-bot.action("how_it_works", async (ctx) => {
- 
-  ctx.replyWithPhoto("https://i.ibb.co/0VtRR6ts/card-menu-prime-Wave.jpg", {
-    caption: `<b>Как это работает?</b>
-
-<blockquote><b>После покупки подписки ✨ вы получите полный доступ к функциям бота. Основная работа происходит через наше Мини-приложение внутри Telegram 📱.
-
-Вам нужно будет:
-
-• Авторизоваться через свой аккаунт 🔐
-• Выбрать канал, который хотите отслеживать 📡
-• Подготовить комментарий, который будет автоматически отправляться ✍️
-• (По желанию) Настроить задержку перед отправкой, чтобы всё выглядело максимально естественно ⏱️
-
-После настройки бот начнёт работать полностью автономно — вам останется только наблюдать за результатом 🚀
-</b>
-
-</blockquote>`,
-    parse_mode: "HTML",
-    reply_markup: {
-      inline_keyboard: [
-        [{ text: "📘 Как это работает", callback_data: "how_it_works" }, { text: "🚀 Купить подписку", callback_data: "buy_subscription" }],
-        [{ text: "👨 Личный кабинет", callback_data: "my_profile" }],
-        [{ text: "💳 Пополнить баланс", callback_data: "pay_balance" }],
-        [{ text: "👨‍💻 Поддержка", callback_data: "help" }]
-      ]
+bot.action("pay_balance", async (ctx) => {
+  await ctx.editMessageMedia(
+    {
+      type: "photo",
+      media: "https://i.ibb.co/tTQ574gv/card-1002.jpg",
+      caption: "<b>💸 Это все способы пополнения баланса.</b>",
+      parse_mode: "HTML",
     },
-  });
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "💳 Карта", callback_data: `pay_umoney` },
+            { text: "🧠 Крипта", callback_data: `pay_crypto` },
+          ],
+          [{ text: "<< Назад", callback_data: `menu_back` }],
+        ],
+      },
+    }
+  );
 });
+
+bot.action("pay_umoney", async (ctx) => {
+  const { id, username } = ctx.from;
+  bot.telegram.sendMessage(ADMIN_ID, `<blockquote><b>Пользователь \n id:<code>${id}</code>  @${username}\n Использовал: Пополнения ЮMoney</b></blockquote>`,{ parse_mode:'HTML' })
+
+  await ctx.editMessageMedia(
+    {
+      type: "photo",
+      media: "https://i.ibb.co/fbWNWJY/card-1003.jpg",
+      caption: "<b>💸 Это пополнения баланса через карту или ЮMoney.</b>",
+      parse_mode: "HTML",
+    },
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "150₽", callback_data: `pay_umoney_150` },
+            { text: "300₽", callback_data: `pay_umoney_300` },
+            { text: "600₽", callback_data: `pay_umoney_600` },
+          ],
+          [{ text: "<< Назад", callback_data: `pay_balance` }],
+        ],
+      },
+    }
+  );
+});
+bot.action("pay_crypto", async (ctx) => {
+  const { id, username } = ctx.from;
+  bot.telegram.sendMessage(ADMIN_ID, `<blockquote><b>Пользователь \n id:<code>${id}</code>  @${username}\n Использовал: Пополнения Крипта</b></blockquote>`,{ parse_mode:'HTML' })
+
+  await ctx.editMessageMedia(
+    {
+      type: "photo",
+      media: "https://i.ibb.co/JRwY2T6L/card-1004.jpg",
+      caption: "<b>💸 Это пополнения баланса через Крипту.</b>",
+      parse_mode: "HTML",
+    },
+    {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            { text: "150₽", callback_data: `pay_crypto_150` },
+            { text: "300₽", callback_data: `pay_crypto_300` },
+            { text: "600₽", callback_data: `pay_crypto_600` },
+          ],
+          [{ text: "<< Назад", callback_data: `pay_balance` }],
+        ],
+      },
+    }
+  );
+});
+
+
+
 
 bot.action("help", async (ctx) => {
   if (!ctx.session.write_user) {
@@ -441,6 +481,8 @@ bot.action("help", async (ctx) => {
     ctx.scene.enter("write_help");
   }
 });
+
+
 
 bot.action("menu", async (ctx) => {
  
@@ -479,144 +521,53 @@ bot.action("menu_back", async (ctx) => {
   );
 });
 
-bot.action("pay_balance", async (ctx) => {
-  const { id, username } = ctx.from;
-  bot.telegram.sendMessage(ADMIN_ID, `<blockquote><b>Пользователь \n id:<code>${id}</code>  @${username}\n Использовал: Способы пополнения </b></blockquote>`,{ parse_mode:'HTML' })
-
-  await ctx.editMessageMedia(
-    {
-      type: "photo",
-      media: "https://i.ibb.co/tTQ574gv/card-1002.jpg",
-      caption: "<b>💸 Это все способы пополнения баланса.</b>",
-      parse_mode: "HTML",
-    },
-    {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: "💳 Карта", callback_data: `pay_umoney` },
-            { text: "🧠 Крипта", callback_data: `pay_crypto` },
-          ],
-          [{ text: "<< Назад", callback_data: `menu_back` }],
-        ],
-      },
-    }
-  );
-});
-
-bot.action("pay_umoney", async (ctx) => {
-  const { id, username } = ctx.from;
-  bot.telegram.sendMessage(ADMIN_ID, `<blockquote><b>Пользователь \n id:<code>${id}</code>  @${username}\n Использовал: Пополнения ЮMoney</b></blockquote>`,{ parse_mode:'HTML' })
-
-  await ctx.editMessageMedia(
-    {
-      type: "photo",
-      media: "https://i.ibb.co/fbWNWJY/card-1003.jpg",
-      caption: "<b>💸 Это пополнения баланса через карту или ЮMoney.</b>",
-      parse_mode: "HTML",
-    },
-    {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: "50₽", callback_data: `pay_umoney_50` },
-            { text: "100₽", callback_data: `pay_umoney_100` },
-            { text: "150₽", callback_data: `pay_umoney_150` },
-          ],
-          [
-            { text: "200₽", callback_data: `pay_umoney_200` },
-            { text: "250₽", callback_data: `pay_umoney_250` },
-            { text: "300₽", callback_data: `pay_umoney_300` },
-          ],
-          [{ text: "<< Назад", callback_data: `pay_balance` }],
-        ],
-      },
-    }
-  );
-});
 
 
-
-bot.action("pay_crypto", async (ctx) => {
-  const { id, username } = ctx.from;
-  bot.telegram.sendMessage(ADMIN_ID, `<blockquote><b>Пользователь \n id:<code>${id}</code>  @${username}\n Использовал: Пополнения Крипта</b></blockquote>`,{ parse_mode:'HTML' })
-
-  await ctx.editMessageMedia(
-    {
-      type: "photo",
-      media: "https://i.ibb.co/JRwY2T6L/card-1004.jpg",
-      caption: "<b>💸 Это пополнения баланса через Крипту.</b>",
-      parse_mode: "HTML",
-    },
-    {
-      reply_markup: {
-        inline_keyboard: [
-          [
-            { text: "100₽", callback_data: `pay_crypto_100` },
-            { text: "200₽", callback_data: `pay_crypto_200` },
-            { text: "300₽", callback_data: `pay_crypto_300` },
-          ],
-          [
-            { text: "500₽", callback_data: `pay_crypto_500` },
-            { text: "1000₽", callback_data: `pay_crypto_1000` },
-            { text: "5000₽", callback_data: `pay_crypto_5000` },
-          ],
-          [{ text: "<< Назад", callback_data: `pay_balance` }],
-        ],
-      },
-    }
-  );
-});
-
-
-bot.action("get_bonus", async (ctx) => {
-  await ctx.deleteMessage();
-  dataBase.findOne({ id: ctx.from.id}).then(user => {
-    if(user.bonus){
-      console.log(user.bonus)
-      if (!ctx.session.order_scena) {
-        ctx.session.order_scena = false;
-        ctx.scene.enter("bonus_order");
-      }
-    }
-    else{
-      const { id } = ctx.from;
-
-ctx.replyWithPhoto("https://i.ibb.co/0jmGR3S4/card-1000.jpg", {
-    caption: ` <b>🔒 Бонус использован!</b>
-
-<blockquote><b>Вы уже получили свои 100 бесплатных подписчиков 👥</b>
-Продолжайте раскручивать канал — впереди ещё больше возможностей 🚀
-</blockquote>
-  
-`,
-    parse_mode: "HTML",
-    reply_markup: {
-      keyboard: [
-        [{ text: "🗂️ Меню", callback_data: `menu` }],
-        [{ text: "👨 Личный кабинет", callback_data: `translate` }],
-        [{ text: "👨‍💻 Задать вопрос", callback_data: `help` }],
- ],
-    },
-  });
-    }
-
-  });
-});
 
 
 // new methods
+
+bot.action("how_it_works", async (ctx) => {
+  ctx.editMessageMedia({
+    type: "photo",
+    media:"https://i.ibb.co/LhRgJzLX/card-how-it-works-prime-Wave.jpg", 
+    caption: `<b>Как это работает?</b>
+
+<blockquote><b>После покупки подписки ✨ вы получите полный доступ к функциям бота. Основная работа происходит через наше Мини-приложение внутри Telegram 📱.
+
+Вам нужно будет:
+
+• Авторизоваться через свой аккаунт 🔐
+• Выбрать канал, который хотите отслеживать 📡
+• Подготовить комментарий, который будет автоматически отправляться ✍️
+• (По желанию) Настроить задержку перед отправкой, чтобы всё выглядело максимально естественно ⏱️
+
+После настройки бот начнёт работать полностью автономно — вам останется только наблюдать за результатом 🚀
+</b>
+
+</blockquote>`,
+    parse_mode: "HTML",
+  },
+  {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "<< Назад", callback_data: "menu_back" }]
+      ]
+    },
+  });
+});
+
 bot.action("my_profile", async (ctx) => {
   const { id } = ctx.from;
   const user = await dataBase.findOne({ id });
   //const refLink = `https://t.me/primeWave_bot?start=ref_${user.ref_code}`;
   ctx.editMessageMedia({
     type: "photo",
-    media:"https://i.ibb.co/0VtRR6ts/card-menu-prime-Wave.jpg", 
+    media:"https://i.ibb.co/2789JGYq/card-my-profile-prime-Wave.jpg", 
     caption: `<b>👤 Личный кабинет</b>
 <blockquote>🆔 ID: ${user.id}
 💰 Баланс: ${user.balance}₽
-🔐 Текущая подписка: нет
+🔐 Текущая подписка: ${user.subscription ?? 'Нет' }
 👥 Рефералы: ${user.referrals}
 </blockquote>
 `,
@@ -626,7 +577,7 @@ bot.action("my_profile", async (ctx) => {
     reply_markup: {
       inline_keyboard: [
         [{ text: "🤝 Реферальная система", callback_data: "referral_system" }],
-        [{ text: "Назад", callback_data: "menu_back" }]
+        [{ text: "<< Назад", callback_data: "menu_back" }]
       ]
     },
   });
@@ -636,10 +587,11 @@ bot.action("my_profile", async (ctx) => {
 bot.action("referral_system", async (ctx) => {
   const { id } = ctx.from;
   const user = await dataBase.findOne({ id });
+  // if(!user.isBanned) return 1;
   const refLink = `https://t.me/primeWave_bot?start=ref_${user.ref_code}`;
   ctx.editMessageMedia({
     type: "photo",
-    media:"https://i.ibb.co/0VtRR6ts/card-menu-prime-Wave.jpg", 
+    media:"https://i.ibb.co/2RWjkvS/card-referral-prime-Wave.jpg", 
     caption: `<b>🤝 Реферальная система</b>
 
 <b>🔗 Ваша приглашательная ссылка:</b>
@@ -656,7 +608,7 @@ bot.action("referral_system", async (ctx) => {
     {
     reply_markup: {
       inline_keyboard: [
-        [{ text: "Назад", callback_data: "my_profile" }]
+        [{ text: "<< Назад", callback_data: "my_profile" }]
       ]
     },
   });
@@ -667,32 +619,121 @@ bot.action("referral_system", async (ctx) => {
 bot.action("buy_subscription", async (ctx) => {
   const { id } = ctx.from;
   const user = await dataBase.findOne({ id });
-  const refLink = `https://t.me/primeWave_bot?start=ref_${user.ref_code}`;
+  if(user.subscription){
+    ctx.editMessageMedia({
+      type: "photo",
+      media:"https://i.ibb.co/GfPL935Q/card-subscription-prime-Wave.jpg", 
+      caption: `<b>У вас уже куплена подписка</b>`,
+      parse_mode: "HTML"
+    },
+    {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "📱 Мини-Приложение", web_app: { url: "https://prime-wave-app.vercel.app"  } }],
+        [{ text: "<< Назад", callback_data: "menu_back" }]
+      ]
+    },
+  });
+  }
+  else{
+    ctx.editMessageMedia({
+      type: "photo",
+      media:"https://i.ibb.co/GfPL935Q/card-subscription-prime-Wave.jpg", 
+      caption: `<b>🎟 Здесь представлены все доступные уровни подписок.</b>
+
+<b>💰 Ваш баланс:</b> <code>${user.balance}₽</code>`,
+      parse_mode: "HTML"
+    },
+    {
+    reply_markup: {
+      inline_keyboard: [
+        [{ text: "🌟 Уровень 1 - 150₽", callback_data: "subscription_level_1" }],
+        [{ text: "<< Назад", callback_data: "menu_back" }]
+      ]
+    },
+  });
+  }
+});
+
+bot.action("subscription_level_1", async (ctx) => {
+  const { id } = ctx.from;
+
   ctx.editMessageMedia({
     type: "photo",
-    media:"https://i.ibb.co/0VtRR6ts/card-menu-prime-Wave.jpg", 
-    caption: `<b>Подписки</b>
+    media:"https://i.ibb.co/GfPL935Q/card-subscription-prime-Wave.jpg", 
+    caption: `<b>🌟 Уровень 1 — 150₽/неделя</b>
 
-<blockquote>💰 Баланс: ${user.balance}₽</blockquote>
-
-<blockquote>Здесь все представленные подписки. Чем выше уровень тем больше возможностей.</blockquote>`,
+<b>Что даёт:</b>
+<blockquote>👤 Авторизация 1 аккаунта
+📡 Отслеживание до 3 каналов
+💬 До 6 заранее сохранённых комментариев
+⏱️ Настройка задержки перед отправкой</blockquote>
+`,
     parse_mode: "HTML"
     },
     {
     reply_markup: {
       inline_keyboard: [
-        [{ text: "🌟 Уровень 1", callback_data: "subscription_level_1" }],
-        [{ text: "🌟 Уровень 2", callback_data: "subscription_level_2" }],
-        [{ text: "🌟 Уровень 3", callback_data: "subscription_level_3" }],
-          
-        [{ text: "Назад", callback_data: "menu_back" }]
+        [{ text: "🛒 Купить", callback_data: "buy_subscription_level_1" }],
+        
+        [{ text: "<< Назад", callback_data: "buy_subscription" }]
       ]
     },
   });
 });
 
+bot.action("buy_subscription_level_1", async (ctx) => {
+  const { id } = ctx.from;
+  const user = await dataBase.findOne({ id });
+  if(user.balance >= 150 && !user.subscription){
+    await dataBase.updateOne({ id }, { $set: { subscription: 'Уровень 1' } });
+    await dataBase.updateOne({ id }, { $inc: { balance: -150 } });
+    ctx.editMessageMedia({
+      type: "photo",
+      media:"https://i.ibb.co/GfPL935Q/card-subscription-prime-Wave.jpg", 
+      caption: `<b>🎉 Подписка оформлена!</b>
 
+<b>🔰 Ваш уровень подписки: 1</b>
 
+Спасибо, что выбрали <b>PrimeWave</b> 🌟
+Ваша подписка успешно активирована — теперь вам доступны расширенные возможности и автоматическая отправка комментариев.
+  `,
+      parse_mode: "HTML"
+      },
+      {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "📱 Мини-Приложение", web_app: { url: "https://prime-wave-app.vercel.app"  } }],
+          [{ text: "<< Назад", callback_data: "menu_back" }]
+        ]
+      },
+    });
+  }
+  else if(user.balance < 150){
+    ctx.editMessageMedia({
+      type: "photo",
+      media:"https://i.ibb.co/GfPL935Q/card-subscription-prime-Wave.jpg", 
+      caption: `<b>⚠️ Недостаточно средств</b>
+
+К сожалению, на вашем балансе недостаточно средств для оформления подписки 💳
+Пополните баланс, чтобы продолжить.
+
+<b>💰 Ваш баланс:</b> <code>${user.balance}₽</code>
+`,
+      parse_mode: "HTML"
+      },
+      {
+      reply_markup: {
+        inline_keyboard: [
+          [{ text: "💳 Пополнить баланс", callback_data: "pay_balance" }],
+          [{ text: "<< Назад", callback_data: "buy_subscription" }]
+        ]
+      },
+    });
+
+  }
+
+});
 
 
 
@@ -727,6 +768,20 @@ bot.action("buy_subscription", async (ctx) => {
 // Комманды
 //https://i.ibb.co/ccPD5CRD/card-standart-prime-Wave.jpg
 //https://i.ibb.co/nMM0hHvP/card-start-prime-Wave.jpg
+bot.command("add", async (ctx) => {
+  const { id } = ctx.from;
+  dataBase.updateOne({ id }, { $set: { balance: 1000 } }).then(async (res) => { 
+    ctx.reply('+ 1000');
+  });
+});
+
+bot.command("set", async (ctx) => {
+  const { id } = ctx.from;
+  dataBase.updateOne({ id }, { $set: { balance: 0 } }).then(async (res) => { 
+    ctx.reply('set = 0');
+  });
+});
+
 bot.command("start", async (ctx) => {
   const { id, first_name, username, language_code } = ctx.from;
   console.log(id, first_name, username);
@@ -737,24 +792,15 @@ bot.command("start", async (ctx) => {
 
   dataBase.findOne({ id, first_name, username }).then(async (res) => {
     if (!res) {
-      console.log("Запись  создаеться");
       dataBase.insertOne({
-        id,
-        first_name,
-        username,
-        referrals: 0,
-        isBanned: false,
-        ref_code: refCode(),
-        prefer: refHashRaw ? refHashRaw.split("_")[1] : 0 ,
-        date: dateNow(),
-        balance: 0,
+        id, first_name, username, referrals: 0, isBanned: false, ref_code: refCode(),
+        subscription: null,
+        prefer: refHashRaw ? refHashRaw.split("_")[1] : 0 , date: dateNow(), balance: 0,
       });
       if (refHashRaw) {
         const refHash = refHashRaw.split("_")[1];
         dataBase.updateOne({ ref_code: refHash }, { $inc: { referrals: 1 } });
       }
-    } else {
-      console.log("Запись уже создана");
     }
   });
 
@@ -765,33 +811,11 @@ bot.command("start", async (ctx) => {
     parse_mode: "HTML",
     reply_markup: {
       inline_keyboard: [
-        [{ text: "Продолжить", callback_data: `menu` }],
+        [{ text: "📲 Перейти в меню", callback_data: `menu` }],
       ],
     },
   });
 });
-
-bot.command("ref", async (ctx) => {
-  const { id, username } = ctx.from;
-  bot.telegram.sendMessage(ADMIN_ID, `<blockquote><b>Пользователь \n id:<code>${id}</code>  @${username}\n Использовал: /ref</b></blockquote>`,{ parse_mode:'HTML' })
-
-
-  dataBase.findOne({ id }).then(async (res) => {
-    const refLink = `https://t.me/${ctx.botInfo.username}?start=ref_${res.ref_code}`;
-    await ctx.replyWithPhoto("https://i.postimg.cc/xTKMSXYY/card-refferals.jpg" ,{ caption:`<b>🔗 Ваша реферальная ссылка</b>
-    
-<code>${refLink}</code>
-
-<blockquote><b>Приглашайте друзей и получайте +10% от каждой их покупки</b> 💸
-Чем больше друзей — тем больше бонусов! 🎁</blockquote>`,
-       parse_mode: "HTML" }
-    );
-  });
-});
-
-
-
-
 
 bot.command("menu", async (ctx) => {
   const { id, username } = ctx.from;
@@ -834,13 +858,13 @@ bot.command("drops", async (ctx) => {
 
 
 
+
 bot.command("help", async (ctx) => {
   if (!ctx.session.write_user) {
     ctx.session.write_user = false;
     ctx.scene.enter("write_help");
   }
 });
-
 
 
 
@@ -860,22 +884,12 @@ bot.launch();
 function refCode(n = 6) {
   const symbols = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890";
   let user_hash = "";
-  for (let i = 0; i != n; i++) {
-    user_hash += symbols[Math.floor(Math.random() * symbols.length)];
-  }
+  for (let i = 0; i != n; i++) { user_hash += symbols[Math.floor(Math.random() * symbols.length)]; }
   return user_hash;
 }
 
 function createQuickpayLink({ receiver, sum, label, targets, paymentType = "AC" }) {
-  const params = querystring.stringify({
-    receiver,
-    "quickpay-form": "shop",
-    targets,
-    paymentType,
-    sum,
-    label
-  });
-
+  const params = querystring.stringify({ receiver, "quickpay-form": "shop", targets, paymentType, sum, label });
   return `https://yoomoney.ru/quickpay/confirm.xml?${params}`;
 }
 
