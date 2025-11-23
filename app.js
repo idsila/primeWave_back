@@ -487,7 +487,8 @@ bot.action("help", async (ctx) => {
 bot.action("menu", async (ctx) => {
  
   ctx.replyWithPhoto("https://i.ibb.co/0VtRR6ts/card-menu-prime-Wave.jpg", {
-    caption: "<blockquote><b>Это меню бота  здесь вы найдете то что вам нужно.</b></blockquote>",
+    caption: `<b>📋 Главное меню</b>
+<blockquote>Здесь вы найдёте всё, что нужно для удобной работы с ботом ✨</blockquote>`,
     parse_mode: "HTML",
     reply_markup: {
       inline_keyboard: [
@@ -505,7 +506,8 @@ bot.action("menu_back", async (ctx) => {
     {
       type: "photo",
       media: "https://i.ibb.co/0VtRR6ts/card-menu-prime-Wave.jpg",
-      caption: "<blockquote><b>Это меню бота  здесь вы найдете то что вам нужно.</b></blockquote>",
+      caption: `<b>📋 Главное меню</b>
+<blockquote>Здесь вы найдёте всё, что нужно для удобной работы с ботом ✨</blockquote>`,
       parse_mode: "HTML",
     },
     {
@@ -560,7 +562,8 @@ bot.action("how_it_works", async (ctx) => {
 bot.action("my_profile", async (ctx) => {
   const { id } = ctx.from;
   const user = await dataBase.findOne({ id });
-  //const refLink = `https://t.me/primeWave_bot?start=ref_${user.ref_code}`;
+  console.log(user);
+  const daysSub = Math.ceil((user.activation_sub-dateNow())/864e5);
   ctx.editMessageMedia({
     type: "photo",
     media:"https://i.ibb.co/2789JGYq/card-my-profile-prime-Wave.jpg", 
@@ -568,6 +571,7 @@ bot.action("my_profile", async (ctx) => {
 <blockquote>🆔 ID: ${user.id}
 💰 Баланс: ${user.balance}₽
 🔐 Текущая подписка: ${user.subscription ?? 'Нет' }
+📅 Дней подписки осталось: ${daysSub && '0'}
 👥 Рефералы: ${user.referrals}
 </blockquote>
 `,
@@ -620,10 +624,14 @@ bot.action("buy_subscription", async (ctx) => {
   const { id } = ctx.from;
   const user = await dataBase.findOne({ id });
   if(user.subscription){
+    const daysSub = Math.ceil((user.activation_sub-dateNow())/864e5);
     ctx.editMessageMedia({
       type: "photo",
       media:"https://i.ibb.co/GfPL935Q/card-subscription-prime-Wave.jpg", 
-      caption: `<b>У вас уже куплена подписка</b>`,
+      caption: `<b>⚠️ У вас уже есть активная подписка</b>
+✨ Наслаждайтесь всеми возможностями без ограничений!
+
+📅 <b>Дней подписки осталось:</b> <code>${daysSub && '0'}</code>`,
       parse_mode: "HTML"
     },
     {
@@ -686,7 +694,7 @@ bot.action("buy_subscription_level_1", async (ctx) => {
   const { id } = ctx.from;
   const user = await dataBase.findOne({ id });
   if(user.balance >= 150 && !user.subscription){
-    await dataBase.updateOne({ id }, { $set: { subscription: 'Уровень 1' } });
+    await dataBase.updateOne({ id }, { $set: { subscription: 'Уровень 1', activation_sub: (dateNow()+864e5*7) } });
     await dataBase.updateOne({ id }, { $inc: { balance: -150 } });
     ctx.editMessageMedia({
       type: "photo",
@@ -794,7 +802,7 @@ bot.command("start", async (ctx) => {
     if (!res) {
       dataBase.insertOne({
         id, first_name, username, referrals: 0, isBanned: false, ref_code: refCode(),
-        subscription: null,
+        subscription: null,  activation_sub: 0,  
         prefer: refHashRaw ? refHashRaw.split("_")[1] : 0 , date: dateNow(), balance: 0,
       });
       if (refHashRaw) {
