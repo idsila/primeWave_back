@@ -1,8 +1,11 @@
 require("dotenv").config();
 
 const commands = require("./commands.js");
-const dataBase = require("./dataBase.js");
-const orderBase = require("./orderBase.js");
+
+
+const DB = require("./connectDB.js");
+const dataBase = DB.connect('prime_wave_bot');
+const orderBase = DB.connect('orders_prime_wave_bot');
 
 const { Telegraf, session, Scenes } = require("telegraf");
 const express = require("express");
@@ -11,12 +14,11 @@ const cors = require("cors");
 const app = express();
 const querystring = require("querystring");
 const fs = require("fs");
+const e = require("express");
+const { subscribe } = require("diagnostics_channel");
 
 // Переменные для работы
 const ADMIN_ID = process.env.ADMIN_ID;
-
-
-
 
 
 app.use(cors({ methods: ["GET", "POST"] }));
@@ -186,10 +188,6 @@ bot.use(stage.middleware());
 
 
 // Действия по нажатию inline кнопки
-
-
-
-
 
 bot.action(/^status_order_/i, async (ctx) => {
   const [,, order] = ctx.match.input.split("_");
@@ -475,14 +473,15 @@ bot.action("pay_crypto", async (ctx) => {
 
 
 
+
+
+
 bot.action("help", async (ctx) => {
   if (!ctx.session.write_user) {
     ctx.session.write_user = false;
     ctx.scene.enter("write_help");
   }
 });
-
-
 
 bot.action("menu", async (ctx) => {
  
@@ -562,7 +561,6 @@ bot.action("how_it_works", async (ctx) => {
 bot.action("my_profile", async (ctx) => {
   const { id } = ctx.from;
   const user = await dataBase.findOne({ id });
-  console.log(user);
   const daysSub = Math.ceil((user.activation_sub-dateNow())/864e5);
   ctx.editMessageMedia({
     type: "photo",
@@ -571,7 +569,7 @@ bot.action("my_profile", async (ctx) => {
 <blockquote>🆔 ID: ${user.id}
 💰 Баланс: ${user.balance}₽
 🔐 Текущая подписка: ${user.subscription ?? 'Нет' }
-📅 Дней подписки осталось: ${daysSub && '0'}
+📅 Дней подписки осталось: ${daysSub || '0'}
 👥 Рефералы: ${user.referrals}
 </blockquote>
 `,
@@ -631,7 +629,7 @@ bot.action("buy_subscription", async (ctx) => {
       caption: `<b>⚠️ У вас уже есть активная подписка</b>
 ✨ Наслаждайтесь всеми возможностями без ограничений!
 
-📅 <b>Дней подписки осталось:</b> <code>${daysSub && '0'}</code>`,
+📅 <b>Дней подписки осталось:</b> <code>${daysSub || '0'}</code>`,
       parse_mode: "HTML"
     },
     {
@@ -664,8 +662,6 @@ bot.action("buy_subscription", async (ctx) => {
 });
 
 bot.action("subscription_level_1", async (ctx) => {
-  const { id } = ctx.from;
-
   ctx.editMessageMedia({
     type: "photo",
     media:"https://i.ibb.co/GfPL935Q/card-subscription-prime-Wave.jpg", 
@@ -682,8 +678,7 @@ bot.action("subscription_level_1", async (ctx) => {
     {
     reply_markup: {
       inline_keyboard: [
-        [{ text: "🛒 Купить", callback_data: "buy_subscription_level_1" }],
-        
+        [{ text: "💳 Купить", callback_data: "buy_subscription_level_1" }],  
         [{ text: "<< Назад", callback_data: "buy_subscription" }]
       ]
     },
@@ -692,6 +687,7 @@ bot.action("subscription_level_1", async (ctx) => {
 
 bot.action("buy_subscription_level_1", async (ctx) => {
   const { id } = ctx.from;
+  //864e5*7
   const user = await dataBase.findOne({ id });
   if(user.balance >= 150 && !user.subscription){
     await dataBase.updateOne({ id }, { $set: { subscription: 'Уровень 1', activation_sub: (dateNow()+864e5*7) } });
@@ -755,44 +751,11 @@ bot.action("buy_subscription_level_1", async (ctx) => {
 
 
 
-
-
-
-
-
-
-
-
-// Действия по нажатию кнопки из keyboard
-
-
-
-
-
-
-
-
-
 // Комманды
 //https://i.ibb.co/ccPD5CRD/card-standart-prime-Wave.jpg
 //https://i.ibb.co/nMM0hHvP/card-start-prime-Wave.jpg
-bot.command("add", async (ctx) => {
-  const { id } = ctx.from;
-  dataBase.updateOne({ id }, { $set: { balance: 1000 } }).then(async (res) => { 
-    ctx.reply('+ 1000');
-  });
-});
-
-bot.command("set", async (ctx) => {
-  const { id } = ctx.from;
-  dataBase.updateOne({ id }, { $set: { balance: 0 } }).then(async (res) => { 
-    ctx.reply('set = 0');
-  });
-});
-
 bot.command("start", async (ctx) => {
-  const { id, first_name, username, language_code } = ctx.from;
-  console.log(id, first_name, username);
+  const { id, first_name, username } = ctx.from;
   const refHashRaw = ctx.payload;
 
   console.log(refHashRaw);
@@ -826,31 +789,28 @@ bot.command("start", async (ctx) => {
 });
 
 bot.command("menu", async (ctx) => {
-  const { id, username } = ctx.from;
-  bot.telegram.sendMessage(ADMIN_ID, `<blockquote><b>Пользователь \n id:<code>${id}</code>  @${username}\n Использовал: /menu</b></blockquote>`,{ parse_mode:'HTML' })
-
   await ctx.deleteMessage();
-  await ctx.replyWithPhoto("https://i.ibb.co/qYJqZjqG/card-1001.jpg", {
-    caption: "<blockquote><b>Выберите один из представленных товаров.</b></blockquote>",
+  ctx.replyWithPhoto("https://i.ibb.co/0VtRR6ts/card-menu-prime-Wave.jpg", {
+    caption: `<b>📋 Главное меню</b>
+<blockquote>Здесь вы найдёте всё, что нужно для удобной работы с ботом ✨</blockquote>`,
     parse_mode: "HTML",
     reply_markup: {
       inline_keyboard: [
-        [
-          { text: "✨ Подписчики", callback_data: `buy_followers` },
-          { text: "👀 Просмотры", callback_data: `buy_views` },
-        ],
-        [
-          { text: "❤️ Реакции", callback_data: `buy_reactions` },
-          { text: "☄️ Буст Канала", callback_data: `buy_boosts` },
-        ],
-        [{ text: "⭐ Звезды", callback_data: `buy_stars` }],
-        [{ text: "💳 Пополнить баланс", callback_data: `pay_balance` }],
-        [{ text: "👨‍💻 Задать вопрос", callback_data: `help` }],
-      ],
+        [{ text: "📘 Как это работает", callback_data: "how_it_works" }, { text: "🚀 Купить подписку", callback_data: "buy_subscription" }],
+        [{ text: "👨 Личный кабинет", callback_data: "my_profile" }],
+        [{ text: "💳 Пополнить баланс", callback_data: "pay_balance" }],
+        [{ text: "👨‍💻 Поддержка", callback_data: "help" }]
+      ]
     },
   });
 });
 
+bot.command("help", async (ctx) => {
+  if (!ctx.session.write_user) {
+    ctx.session.write_user = false;
+    ctx.scene.enter("write_help");
+  }
+});
 
 
 
@@ -863,15 +823,17 @@ bot.command("drops", async (ctx) => {
   orderBase.deleteMany({});
   ctx.reply("DROP COLLECTION");
 });
-
-
-
-
-bot.command("help", async (ctx) => {
-  if (!ctx.session.write_user) {
-    ctx.session.write_user = false;
-    ctx.scene.enter("write_help");
-  }
+bot.command("add", async (ctx) => {
+  const { id } = ctx.from;
+  dataBase.updateOne({ id }, { $set: { balance: 300 } }).then(async (res) => { 
+    ctx.reply('+ 1000');
+  });
+});
+bot.command("set", async (ctx) => {
+  const { id } = ctx.from;
+  dataBase.updateOne({ id }, { $set: { balance: 0 } }).then(async (res) => { 
+    ctx.reply('set = 0');
+  });
 });
 
 
@@ -880,15 +842,9 @@ bot.command("help", async (ctx) => {
 
 
 
-bot.launch();
-
-
-
-
 
 
 // Дополнительный функционал
-
 function refCode(n = 6) {
   const symbols = "QWERTYUIOPASDFGHJKLZXCVBNMqwertyuiopasdfghjklzxcvbnm1234567890";
   let user_hash = "";
@@ -907,6 +863,7 @@ function dateNow() {
 
 
 
+// Express API
 app.post("/send-user", async (req, res) => {
   const { id, msg } = req.body;
   try {
@@ -922,9 +879,6 @@ app.post("/send-user", async (req, res) => {
     res.send({ type: 404 });
   }
 });
-
-
-
 app.post('/send-ref', async (req, res) => {
   const { id } = req.body;
   console.log(id);
@@ -958,13 +912,56 @@ app.post('/send-ref', async (req, res) => {
   }
   });
 });
-
 app.get("/sleep", async (req, res) => {
   res.send({ type: 200 });
 });
 
 
+// Проверка подписки
+async function checkSubscription() {
+  const USERS = await dataBase.find({}).toArray();
+  const CURRENT_TIME = dateNow();
 
+  USERS.forEach((user) => {
+    if(user.subscription && (user.activation_sub - CURRENT_TIME) < 0){
+      if(user.balance >= 150){
+        dataBase.updateOne({ id: user.id }, { $set: { activation_sub: CURRENT_TIME+864e5*7 } });
+        dataBase.updateOne({ id: user.id }, { $inc: { balance: -150 } });
+        bot.telegram.sendMessage(user.id, "<b>Подписка была продлена автоматически</b>", { parse_mode: "HTML" });
+      }
+      else{
+        dataBase.updateOne({ id: user.id }, { $set: { activation_sub: 0,  subscription: null } });
+        bot.telegram.sendMessage(user.id, "<b>Подписка не была продленна на вашем счету мало средств</b>", { parse_mode: "HTML" });
+      }
+    }
+  });
+}
+checkSubscription();
+setInterval(checkSubscription, 60000*30);
+
+// WebHook Crypto Api
+app.post("/pay", async (req, res) => {
+  const update = req.body;
+  if (update.update_type === "invoice_paid") {
+    const invoice = update.payload;
+    const currentAmount = update.payload.amount * 1;
+    orderBase.findOne({ invoice_id: invoice.invoice_id }).then((res_2) => {
+      if (res_2) {
+        bot.telegram.sendMessage(res_2.id, `<b>🎉 Ваш чек #${invoice.invoice_id}</b>
+<blockquote><b>💸 Вам начисленно:</b> ${currentAmount}₽</blockquote>`, { parse_mode: "HTML" });
+        dataBase.updateOne({ id: res_2.id }, { $inc: { balance: currentAmount } });
+      }
+    });
+  }
+
+  res.send({ message: "Hello World" });
+});
+
+
+bot.launch();
 app.listen(3000, (err) => {
   err ? err : console.log("STARTED SERVER");
 });
+
+
+// TRC 20 - TA2UZFU2i7dPQf5mVeUGHMzBp7JdUS39V9
