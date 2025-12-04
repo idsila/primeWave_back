@@ -4,8 +4,8 @@ const commands = require("./commands.js");
 
 
 const DB = require("./connectDB.js");
-const dataBase = DB.connect('prime_wave_bot');
-const orderBase = DB.connect('orders_prime_wave_bot');
+const dataBase = DB.connect('pw_bot');
+const orderBase = DB.connect('pw_orders_bot');
 
 const { Telegraf, session, Scenes } = require("telegraf");
 const express = require("express");
@@ -13,9 +13,6 @@ const axios = require("axios");
 const cors = require("cors");
 const app = express();
 const querystring = require("querystring");
-const fs = require("fs");
-const e = require("express");
-const { subscribe } = require("diagnostics_channel");
 
 // Переменные для работы
 const ADMIN_ID = process.env.ADMIN_ID;
@@ -764,9 +761,10 @@ bot.command("start", async (ctx) => {
   dataBase.findOne({ id, first_name, username }).then(async (res) => {
     if (!res) {
       dataBase.insertOne({
-        id, first_name, username, referrals: 0, isBanned: false, ref_code: refCode(),
-        subscription: null,  activation_sub: 0,  
-        prefer: refHashRaw ? refHashRaw.split("_")[1] : 0 , date: dateNow(), balance: 0,
+        id, first_name, username, referrals: 0, isBanned: false, isValid: true, 
+        ref_code: refCode(), id_hash: refCode(),
+        subscription: null,  activation_sub: 0,
+        prefer: refHashRaw ? refHashRaw.split("_")[1] : 0 , date: dateNow(), balance: 0
       });
       if (refHashRaw) {
         const refHash = refHashRaw.split("_")[1];
@@ -863,6 +861,10 @@ function dateNow() {
 
 
 
+
+
+
+
 // Express API
 app.post("/send-user", async (req, res) => {
   const { id, msg } = req.body;
@@ -915,6 +917,41 @@ app.post('/send-ref', async (req, res) => {
 app.get("/sleep", async (req, res) => {
   res.send({ type: 200 });
 });
+
+// Express Telegram API
+app.post("/telegram/send-text", async (req, res) => {
+  const { id, text } = req.body;
+  try {
+    await bot.telegram.sendMessage(id, text, { parse_mode: 'HTML'});
+    res.json({ type: 200 });
+  }
+  catch(error){
+    if (error.response && error.response.error_code === 403) {
+      console.log(`Пользователь ${id} заблокировал бота`);
+    } else {
+      console.error("Ошибка при отправке:", error);
+    }
+    res.json({ type: 500 });
+  }
+}); 
+
+app.post("/telegram/send-photo", async (req, res) => {
+  const { id, text, image } = req.body;
+  try {
+    await bot.telegram.sendPhoto(id, image, { caption: text,  parse_mode: 'HTML'})
+    res.json({ type: 200 });
+  }
+  catch(error){
+    if (error.response && error.response.error_code === 403) {
+      console.log(`Пользователь ${id} заблокировал бота`);
+    } else {
+      console.error("Ошибка при отправке:", error);
+    }
+    res.json({ type: 500 });
+  }
+}); 
+
+
 
 
 // Проверка подписки
