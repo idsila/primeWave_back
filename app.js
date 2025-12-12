@@ -31,7 +31,6 @@ const bot = new Telegraf(process.env.TOKEN);
 bot.use(
   session({
     defaultSession: () => ({ write_user: false, write_admin: false, order_scena: false })
-
   })
 );
 
@@ -340,7 +339,7 @@ bot.action(/^umoney_lable_/i, async (ctx) => {
   const id = ctx.from.id;
   const currenLable = ctx.match.input.split("_")[2];
 
-  console.log(currenLable);
+  //console.log(currenLable);
 
   const response = await axios.post(
     "https://yoomoney.ru/api/operation-history",
@@ -361,7 +360,7 @@ bot.action(/^umoney_lable_/i, async (ctx) => {
   
     const payment = operations[0]; // последний платёж с этим label
     if (payment.status === "success") {
-      console.log(payment)
+      //console.log(payment)
       await ctx.deleteMessage();
      
       orderBase.findOne({ lable: currenLable }).then(async (order) => {
@@ -372,7 +371,8 @@ bot.action(/^umoney_lable_/i, async (ctx) => {
         //new code
         const userPay = await dataBase.findOne({ id: order.id });
         if(userPay.prefer){
-          await dataBase.updateOne({ ref_code: userPay.prefer }, { $inc: { balance: (order.amount*1)*0.20 } });
+          const userMain = await dataBase.findOne({ ref_code: userPay.prefer });
+          await dataBase.updateOne({ ref_code: userPay.prefer }, { $inc: { balance: (order.amount*1)*(userMain.percent_ref/100) } });
         }
         
       });
@@ -467,8 +467,9 @@ bot.action("pay_umoney", async (ctx) => {
       reply_markup: {
         inline_keyboard: [
           [
-            { text: "150₽", callback_data: `pay_umoney_150` },
-            { text: "300₽", callback_data: `pay_umoney_300` },
+            { text: "100₽", callback_data: `pay_umoney_100` },
+            { text: "200₽", callback_data: `pay_umoney_150` },
+            { text: "400₽", callback_data: `pay_umoney_300` },
             { text: "600₽", callback_data: `pay_umoney_600` },
           ],
           [{ text: "<< Назад", callback_data: `pay_balance` }],
@@ -492,8 +493,8 @@ bot.action("pay_crypto", async (ctx) => {
       reply_markup: {
         inline_keyboard: [
           [
-            { text: "150₽", callback_data: `pay_crypto_150` },
-            { text: "300₽", callback_data: `pay_crypto_300` },
+            { text: "200₽", callback_data: `pay_crypto_200` },
+            { text: "400₽", callback_data: `pay_crypto_400` },
             { text: "600₽", callback_data: `pay_crypto_600` },
           ],
           [{ text: "<< Назад", callback_data: `pay_balance` }],
@@ -635,7 +636,7 @@ bot.action("referral_system", async (ctx) => {
 <b>👥 Количество рефералов: ${user.referrals}</b>
 
 <b>💸 Ваш бонус:</b>
-<blockquote>Вы получаете 20% от каждого пополнения 
+<blockquote>Вы получаете ${user.percent_ref}% от каждого пополнения 
 баланса, сделанного вашим рефералом.
 Зарабатывайте, просто приглашая друзей!</blockquote>`,
     parse_mode: "HTML"
@@ -810,8 +811,6 @@ bot.action(/^buy_subscription_level_/i, async (ctx) => {
 
 
 // Комманды
-//https://i.ibb.co/ccPD5CRD/card-standart-prime-Wave.jpg
-//https://i.ibb.co/nMM0hHvP/card-start-prime-Wave.jpg
 bot.command("start", async (ctx) => {
   const { id, first_name, username } = ctx.from;
   const refHashRaw = ctx.payload;
@@ -823,6 +822,7 @@ bot.command("start", async (ctx) => {
     if (!res) {
       dataBase.insertOne({
         id, first_name, username, referrals: 0, isBanned: false, isValid: true, 
+        percent_ref: 20,
         ref_code: refCode(), id_hash: refCode(),
         subscription: null,  activation_sub: 0,
         prefer: refHashRaw ? refHashRaw.split("_")[1] : 0 , date: dateNow(), balance: 0
@@ -1056,7 +1056,8 @@ app.post("/pay", async (req, res) => {
         // new code
         const userPay = await dataBase.findOne({ id: res_2.id });
         if(userPay.prefer){
-          await dataBase.updateOne({ ref_code: userPay.prefer }, { $inc: { balance: currentAmount*0.20 } });
+          const userMain = await dataBase.findOne({ ref_code: userPay.prefer });
+          await dataBase.updateOne({ ref_code: userPay.prefer }, { $inc: { balance: currentAmount*(userMain.percent_ref/100) } });
         }
       }
     });
