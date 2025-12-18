@@ -1045,20 +1045,32 @@ setInterval(checkSubscription, 60000*30);
 // WebHook Crypto Api
 app.post("/pay", async (req, res) => {
   const update = req.body;
+  console.log('1:', update);
   if (update.update_type === "invoice_paid") {
     const invoice = update.payload;
     const currentAmount = update.payload.amount * 1;
+
+    console.log('2: ', invoice, currentAmount);
+
     orderBase.findOne({ invoice_id: invoice.invoice_id }).then(async (res_2) => {
+      console.log('3 ', res_2);
       if (res_2) {
-        bot.telegram.sendMessage(res_2.id, `<b>🎉 Ваш чек #${invoice.invoice_id}</b>
-<blockquote><b>💸 Вам начисленно:</b> ${currentAmount}₽</blockquote>`, { parse_mode: "HTML" });
-        dataBase.updateOne({ id: res_2.id }, { $inc: { balance: currentAmount } });
+        await dataBase.updateOne({ id: res_2.id }, { $inc: { balance: currentAmount } });
+
         // new code
         const userPay = await dataBase.findOne({ id: res_2.id });
+         console.log('4 ', userPay);
         if(userPay.prefer){
+          console.log('5', userPay.prefer);
           const userMain = await dataBase.findOne({ ref_code: userPay.prefer });
+          console.log('6', userMain);
           await dataBase.updateOne({ ref_code: userPay.prefer }, { $inc: { balance: currentAmount*(userMain.percent_ref/100) } });
         }
+
+        bot.telegram.sendMessage(res_2.id, `<b>🎉 Ваш чек #${invoice.invoice_id}</b>
+<blockquote><b>💸 Вам начисленно:</b> ${currentAmount}₽</blockquote>`, { parse_mode: "HTML" });
+        
+        
       }
     });
   }
