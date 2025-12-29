@@ -739,6 +739,50 @@ bot.action(/^subscription_level_/i, async (ctx) => {
 });
 
 
+bot.action("cancel_subscription", async (ctx) => {
+  const { id } = ctx.from;
+  const user = await dataBase.findOne({ id });
+
+  const daysSub = Math.floor((user.activation_sub-dateNow())/864e5);
+  const moneyBack = (SUBS[user.subscription].price/7)*daysSub;
+
+  await dataBase.updateOne({ id }, { $set: { activation_sub: 0,  subscription: null } });
+  dataBase.updateOne({ id: user.id }, { $inc: { balance: (moneyBack*1) } });
+  axios.post(`${URL_APP}/api/suspend-user`,  { id }, { headers: { "Content-Type": "application/json" } });
+  bot.telegram.sendMessage(id, `<b>Вы отменили подписку!</b> \n <blockquote><b>🔰 Ваш уровень подписки был: ${ user.subscription }</b> \n<b>Вам было возвращенно: ${moneyBack}₽</b></blockquote>`, { parse_mode: "HTML" });
+
+  // dataBase.updateOne({ id: user.id }, { $inc: { balance: (SUBS[user.subscription].price*-1) } });
+
+  //  user.subscription
+
+  // SUBS[user.subscription].price/7
+
+
+  await ctx.editMessageMedia(
+    {
+      type: "photo",
+      media: "https://i.ibb.co/0VtRR6ts/card-menu-prime-Wave.jpg",
+      caption: `<b>📋 Главное меню</b>
+<blockquote>Здесь вы найдёте всё, что нужно для удобной работы с ботом ✨</blockquote>`,
+      parse_mode: "HTML",
+    },
+    {
+      reply_markup: {
+        inline_keyboard: [
+        [{ text: "📘 Как это работает", callback_data: "how_it_works" }, { text: "🚀 Купить подписку", callback_data: "buy_subscription" }],
+        [{ text: "👨 Личный кабинет", callback_data: "my_profile" }],
+        [{ text: "💳 Пополнить баланс", callback_data: "pay_balance" }],
+        [{ text: "👨‍💻 Поддержка", callback_data: "help" }]
+        ]
+      },
+    }
+  );
+
+
+
+});
+
+
 bot.action(/^buy_subscription_level_/i, async (ctx) => {
   const { id } = ctx.from;
   const level = ctx.match.input.split("buy_subscription_level_")[1];
@@ -766,6 +810,7 @@ bot.action(/^buy_subscription_level_/i, async (ctx) => {
       reply_markup: {
         inline_keyboard: [
           [{ text: "📱 Мини-Приложение", web_app: { url: "https://prime-wave-app.vercel.app"  } }],
+          [{ text: "❌ Отменить подписку", callback_data: "cancel_subscription" }],
           [{ text: "<< Назад", callback_data: "menu_back" }]
         ]
       },
