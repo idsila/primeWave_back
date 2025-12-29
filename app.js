@@ -669,6 +669,7 @@ bot.action("buy_subscription", async (ctx) => {
     reply_markup: {
       inline_keyboard: [
         [{ text: "📱 Мини-Приложение", web_app: { url: "https://prime-wave-app.vercel.app"  } }],
+        [{ text: "❌ Отменить подписку", callback_data: "cancel_subscription" }],
         [{ text: "<< Назад", callback_data: "menu_back" }]
       ]
     },
