@@ -863,7 +863,7 @@ bot.command("start", async (ctx) => {
   console.log(refHashRaw);
   bot.telegram.sendMessage(ADMIN_ID, `<blockquote><b>Пользователь добавился:\n id:<code>${id}</code>  @${username}</b></blockquote>`,{ parse_mode:'HTML' })
 
-  dataBase.findOne({ id, first_name, username }).then(async (res) => {
+  dataBase.findOne({ id }).then(async (res) => {
     if (!res) {
       dataBase.insertOne({
         id, first_name, username, referrals: 0, isBanned: false, isValid: true, 
