@@ -314,7 +314,7 @@ bot.action(/^pay_umoney_/i, async (ctx) => {
 
   const currenLable = refCode(10);
 
-  const link = createQuickpayLink({ receiver: "4100119146265962", sum: amountOrder*1, label: currenLable, targets: `Оплата #${currenLable}` });
+  const link = createQuickpayLink({ receiver: "4100119146265962", sum: amountOrder*1, label: currenLable, targets: `Пожертвование #${currenLable}` });
   orderBase.insertOne( { id, lable: currenLable, amount: amountOrder*1, status: false }).then(() => {
       ctx.reply(`<b>💳 Ссылка на оплату сгенерирована #${currenLable}</b>
 <blockquote><b>⚡️ Обратите внимание: сервис удерживает 3% комиссии, но мы покрываем её за вас! </b> </blockquote>`
