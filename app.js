@@ -1047,9 +1047,9 @@ app.get("/sleep", async (req, res) => {
 
 // Express Telegram API
 app.post("/telegram/send-text", async (req, res) => {
-  const { id, text } = req.body;
+  const { id, text, buttons } = req.body;
   try {
-    await bot.telegram.sendMessage(id, text, { parse_mode: 'HTML'});
+    await bot.telegram.sendMessage(id, text, { parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons } });
     res.json({ type: 200 });
   }
   catch(error){
@@ -1063,9 +1063,9 @@ app.post("/telegram/send-text", async (req, res) => {
 }); 
 
 app.post("/telegram/send-photo", async (req, res) => {
-  const { id, text, image } = req.body;
+  const { id, text, image, buttons } = req.body;
   try {
-    await bot.telegram.sendPhoto(id, image, { caption: text,  parse_mode: 'HTML'})
+    await bot.telegram.sendPhoto(id, image, { caption: text,  parse_mode: 'HTML', reply_markup: { inline_keyboard: buttons }})
     res.json({ type: 200 });
   }
   catch(error){
