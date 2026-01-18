@@ -906,12 +906,16 @@ bot.command("start", async (ctx) => {
 
   dataBase.findOne({ id }).then(async (res) => {
     if (!res) {
+      let free = 0 ;
+      if(refHashRaw === 'free'){
+        free = 90;
+      }
       dataBase.insertOne({
         id, first_name, username, referrals: 0, isBanned: false, isValid: true, 
         percent_ref: 20,
         ref_code: refCode(), id_hash: refCode(),
         subscription: null,  activation_sub: 0,
-        prefer: refHashRaw ? refHashRaw.split("_")[1] : 0 , date: dateNow(), balance: 0
+        prefer: refHashRaw ? refHashRaw.split("_")[1] : 0 , date: dateNow(), balance: 0+free
       });
       if (refHashRaw) {
         const refHash = refHashRaw.split("_")[1];
