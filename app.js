@@ -908,7 +908,7 @@ bot.command("start", async (ctx) => {
     if (!res) {
       let free = 0 ;
       if(refHashRaw === 'free'){
-        free = 90;
+        free = 100;
       }
       dataBase.insertOne({
         id, first_name, username, referrals: 0, isBanned: false, isValid: true, 
